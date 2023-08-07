@@ -1,0 +1,359 @@
+#include "hsp3dish.as"
+#include "t6racket.as"
+
+title "tan6 racket"
+
+;-------------------------------------------------------------------------------
+;
+; 最初期設定
+;
+;-------------------------------------------------------------------------------
+
+*first
+
+getreq int_os, SYSREQ_PLATFORM           ; OS識別
+flag_is_ios     = (int_os = 1)
+flag_is_android = (int_os = 2)
+flag_is_windows = (int_os = 0)
+
+; フォント画像のロード（半角）
+celload "fon_cha1.png", 2
+celdiv 2, g_font_png_x, g_font_png_y, 0, 0
+
+; フォント画像のロード（全角）
+celload "fon_cha2.png", 3
+celdiv 3, g_font_png_y, g_font_png_y, 0, 0
+
+int_mousex = 0
+int_mousey = 0
+
+int_max_x = g_screen_x / g_font_x
+int_max_y = ( g_screen_y / g_font_y ) - 2
+
+; 乱数初期化
+randomize
+
+int_score = 0
+int_flame = 0       ; フレーム数取得
+int_flame_first = 0 ; 再開時の誤入力を防ぐ初期入力不可時間
+int_vanish = 255
+
+; 目盛
+double_dx = double( g_screen_x ) / 320
+double_dy = double( g_screen_y ) / 480
+
+; 自分の位置
+double_x = double( g_font_x )
+double_y = double( 16 * g_font_y )
+
+; ボールの位置・速度
+double_ball_x = double(( 3 + rnd(20)) * g_font_x )
+double_ball_y = double(( 3 + rnd(5)) * g_font_y )
+double_ball_vx = 4.0 * double_dx
+double_ball_vy = -4.0 * double_dy
+
+; イベント
+int_event_id = 0
+int_event_time = 0
+int_no_event_time = zone_rnd( 0, 0 )
+int_crank = 0
+
+sdim arr_event_name, 20, 10
+arr_event_name(0) = ""
+arr_event_name(1) = "Wind ｢"
+arr_event_name(2) = "Wind ･"
+arr_event_name(3) = "Gravity ｣"
+arr_event_name(4) = "Gravity ､"
+arr_event_name(5) = "Skip"
+arr_event_name(6) = "Sometimes Crank"
+arr_event_name(7) = "Sometimes Warp"
+
+dim arr_event_score, 10
+arr_event_score(0) = 10
+arr_event_score(1) = 12
+arr_event_score(2) = 12
+arr_event_score(3) = 12
+arr_event_score(4) = 12
+arr_event_score(5) = 12
+arr_event_score(6) = 15
+arr_event_score(7) = 15
+
+*play
+
+	; イベントの発生チェック
+	if (( int_event_id = 0 ) & ( int_no_event_time = 0 )) {
+		int_event_id = zone_rnd( int_flame, 2 )
+		int_event_time = zone_rnd( int_flame, 1 )
+		int_no_event_time = zone_rnd( int_flame, 0 )
+	} else {
+		if ( int_event_time > 0 ) {
+			int_event_time--
+			if ( int_event_time = 0 ) :int_event_id = 0
+		} else {
+			int_no_event_time--
+		}
+	}
+	int_flame++
+
+	; 入力
+	int_direction = -1
+	if ( int_flame_first > 9 ) {
+		stick int_stk, 256
+		if ( int_stk & 256 ) {
+			j = 0 :k = 0
+			int_mousex = mousex
+			int_mousey = mousey
+			if ( int_mousey >= ( int_max_y + 1 ) * g_font_y ) {
+				if ( int_mousex < ( g_screen_x / 2 )): int_direction = 0 :else :int_direction = 3
+			}
+		}
+		if ( int_stk & 128 ) :gosub *exit
+		getkey int_gky, 37 :if ( int_gky ) :int_direction = 0
+		getkey int_gky, 39 :if ( int_gky ) :int_direction = 3
+
+		getkey int_gky, 72 :if ( int_gky ) :int_direction = 0
+		getkey int_gky, 76 :if ( int_gky ) :int_direction = 3
+	} else {
+		; 入力受付不可時間
+		int_flame_first++
+	}
+
+	; ラケットの移動
+	switch int_direction
+	case 0:
+		double_x -= 5.0 * double_dx
+		if ( double_x < g_font_x ) :double_x = g_font_x
+		swbreak
+	case 3:
+		double_x += 5.0 * double_dx
+		if ( double_x > ( 24 * g_font_x )) :double_x = 24 * g_font_x
+		swbreak
+	swend
+
+	; ボールの移動・OR イベント：Skip・Crank
+	switch int_event_id
+	case 5:
+		i = int_flame & 31
+		if ( i < 21 ) {
+			double_ball_x += ( double_ball_vx * 1.5 )
+			double_ball_y += ( double_ball_vy * 1.5 )
+ 		} else {
+			double_ball_x += ( double_ball_vx * 0.5 )
+			double_ball_y += ( double_ball_vy * 0.5 )
+		}
+		swbreak
+	case 6:
+		if (( int_crank = 0 ) & ( rnd(150) = 0 )) {
+			int_crank = 16 + rnd(11)
+			f = double_ball_vx
+			double_ball_vx = double_ball_vy
+			double_ball_vy = -f
+		}
+		if ( int_crank > 0 ) {
+			int_crank--
+			if ( int_crank = 0 ) {
+				f = double_ball_vx
+				double_ball_vx = -double_ball_vy
+				double_ball_vy = f
+			}
+		}
+		double_ball_x += double_ball_vx
+		double_ball_y += double_ball_vy
+		swbreak
+	default:
+		double_ball_x += double_ball_vx
+		double_ball_y += double_ball_vy
+		swbreak
+	swend
+
+	; イベント：Wind・Gravity・Warp
+	switch int_event_id
+	case 1:
+		double_x -= double_dx
+		if ( double_x < g_font_x ) :double_x = g_font_x
+		swbreak
+	case 2:
+		double_x += double_dx
+		if ( double_x > ( 24 * g_font_x )) :double_x = 24 * g_font_x
+		swbreak
+	case 3:
+		double_ball_y += double_dy
+		swbreak
+	case 4:
+		double_ball_y -= double_dy
+		swbreak
+	case 7:
+		if ( rnd(150) = 0 ) {
+			double_ball_x = double( ( rnd(21) + 2 ) * g_font_x )
+			double_ball_y = double( ( rnd(10) + 2 ) * g_font_y )
+		}
+		swbreak
+	swend
+
+	; ボール壁反射
+	if ( double_ball_x < g_font_x ) {
+		double_ball_x = double( g_font_x )
+		swap_bound double_ball_vx, double_ball_vy
+	}
+	if ( double_ball_x > ( 24 * g_font_x )) {
+		double_ball_x = double( 24 * g_font_x )
+		swap_bound double_ball_vx, double_ball_vy
+	}
+	if ( double_ball_y < g_font_y ) {
+		double_ball_y = double( g_font_y )
+		swap_bound double_ball_vy, double_ball_vx
+	}
+	; ボール自機反射
+	if ((( double_x - g_font_x ) < double_ball_x ) & ( double_ball_x < ( double_x + g_font_x )) & (( double_y - g_font_y ) < double_ball_y ) & ( double_ball_y < ( double_y + ( g_font_y / 3))) & ( double_ball_vy > 0 ))  {
+		int_score += arr_event_score( int_event_id )
+		if ( int_direction >= 0 ) :int_score += arr_event_score( int_event_id ) / 5
+		;double_ball_y = double_y - g_font_y
+		swap_bound double_ball_vy, double_ball_vx
+	}
+	; 外に出た
+	if ( double_ball_y > g_screen_y ) :goto *dead
+
+	; 描画
+	redraw 0
+	gfilter 1
+
+	color 0, 0, 0
+	boxf 0, 0, g_screen_x, g_screen_y
+
+	for i, 0, 26, 1
+		pos i * g_font_x, 0 :fprint "#", 255
+	next
+	for j, 1, 19, 1
+		pos 0, j * g_font_y :fprint "#", 255
+		pos 25 * g_font_x, j * g_font_y :fprint "#", 255
+	next
+
+	; 自機＆ボール
+	pos int(double_x), int(double_y) :fprint "T", 255
+	pos int(double_ball_x), int(double_ball_y) :fprint "O", 255
+
+	; イベント
+	pos 3 * g_font_x, 3 * g_font_y :fprint arr_event_name(int_event_id), 255
+
+	pos 2 * g_font_x, int_max_y * g_font_y
+	fprint "Score : ", 255
+	pos ( 14 - log10(int_score) ) * g_font_x, int_max_y * g_font_y
+	fprint "" + int_score, 255
+
+	; ステータスバーの表示
+	gosub *status_bar_at_game
+	redraw 1
+	await 16
+
+	goto *play
+
+*dead
+	redraw 0
+	gfilter 1
+
+	stick int_stk, 256
+	if ( int_stk & 128 ) :gosub *exit
+
+	; 描画
+	color int_vanish / 5, 0, 0
+	boxf 0, 0, g_screen_x, g_screen_y
+
+	for i, 0, 26, 1
+		pos i * g_font_x, 0 :fprint "#", 255
+	next
+	for j, 1, 19, 1
+		pos 0, j * g_font_y :fprint "#", 255
+		pos 25 * g_font_x, j * g_font_y :fprint "#", 255
+	next
+
+	; 自機
+	pos int(double_x), int(double_y) :fprint "T", int_vanish
+
+	; イベント
+	pos 3 * g_font_x, 3 * g_font_y :fprint arr_event_name(int_event_id), int_vanish
+
+	pos 2 * g_font_x, int_max_y * g_font_y
+	fprint "Score : ", 255
+	pos ( 14 - log10(int_score) ) * g_font_x, int_max_y * g_font_y
+	fprint "" + int_score, 255
+
+	; ステータスバーの表示
+	gosub *status_bar_at_game
+
+	if ( int_vanish > 0 ) :int_vanish-=5 :else :goto *menu
+
+	redraw 1
+	await 16
+	goto *dead
+
+*menu
+	redraw 0
+	gfilter 1
+
+	; 描画
+	color 0, 0, 0
+	boxf 0, 0, g_screen_x, g_screen_y
+
+	stick int_stk, 0 :if ( int_stk & 256 ) {
+		int_mousex = mousex
+		int_mousey = mousey
+		if ( int_mousey >= ( int_max_y + 1 ) * g_font_y ) {
+			if ( int_mousex < ( g_screen_x / 2 )) {
+				goto *first
+			} else {
+				gosub *exit
+			}
+		}
+	} else {
+		if ( int_stk ) {
+			if ( int_stk & 128 ) :gosub *exit :else :goto *first
+		}
+	}
+
+	pos 2 * g_font_x, 1 * g_font_y
+	fprint "Your score is " + int_score + ".", 255
+	pos 2 * g_font_x, 3 * g_font_y
+	fprint g_tan6 + "racket｡ v1.0", 255
+	pos 2 * g_font_x, 4 * g_font_y
+	fprint "2013(C) m-ushi", 255
+
+	; ステータスバーの表示
+	color 85, 85, 102
+	boxf 0, ( int_max_y + 1 ) * g_font_y, g_screen_x, g_screen_y
+
+	color 255, 255, 255
+	line 0, ( int_max_y + 1 ) * g_font_y, g_screen_x, ( int_max_y + 1 ) * g_font_y
+	line g_screen_x / 2, ( int_max_y + 1 ) * g_font_y, g_screen_x / 2, g_screen_y
+
+	pos ( 1 * g_screen_x / 4 ) - ( 5 * g_font_x / 2 ), ( int_max_y + 1 ) * g_font_y
+	fprint "Retry", 255
+	if ( flag_is_ios ^ 1 ) {
+		pos ( 3 * g_screen_x / 4 ) - ( 2 * g_font_x ), ( int_max_y + 1 ) * g_font_y
+		fprint "Exit", 255
+	}
+
+	redraw 1
+	await 16
+
+	goto *menu
+
+*status_bar_at_game
+	color 85, 85, 102
+	boxf 0, ( int_max_y + 1 ) * g_font_y, g_screen_x, g_screen_y
+
+	color 255, 255, 255
+	line 0, ( int_max_y + 1 ) * g_font_y, g_screen_x, ( int_max_y + 1 ) * g_font_y
+	for i, 1, 2, 1
+		line i * g_screen_x / 2, ( int_max_y + 1 ) * g_font_y, i * g_screen_x / 2, g_screen_y
+	next
+	for i, 0, 2, 1
+		pos (( 2 * i + 1 ) * g_screen_x / 4 ) - ( g_font_x ), ( int_max_y + 1 ) * g_font_y
+		if ( i = 0 ) :fprint "｢", 255
+		if ( i = 1 ) :fprint "･", 255
+	next
+
+	return
+
+*exit
+	if ( flag_is_ios ^ 1 ) :end 0
+	return

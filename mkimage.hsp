@@ -1,0 +1,160 @@
+#include "hsp3util.as"
+
+; imagemagickの場所
+g_imagemagick = "C:\\usr\\program\\imagemagick\\convert.exe"
+
+; fon_char.bmp 作成
+
+	screen 0, 300, 300, 4
+
+	objsize 300, 24
+	font "メイリオ", 12
+	objmode 2, 1
+	font "メイリオ", 16
+	mes "ボタンクリックでプレビュー表示"
+	mes "さらにクリックでbmp生成して開く"
+	button goto "fon_cha1.bmp (アスキー)", *fon_cha1
+	button goto "fon_cha2.bmp (絵文字)",   *fon_cha2
+
+*startx
+	onclick *startx
+	gsel 0
+	stop
+
+; fon_cha1.png プレビュー
+*fon_cha1
+	; 定数
+	g_x = 16 :g_y = 32 ; フォントサイズ
+	g_a = 16 :g_b =  6 ; 画像数
+
+	; プレビュー表示
+	screen 1, g_x*g_a, g_y*g_b, 8
+	gosub *fon_cha1_draw
+
+	; 補助線
+	color 102,102,102
+	for i, 0, g_b, 1 :line     0, i*g_y, g_a*g_x,   i*g_y :next
+	for i, 0, g_a, 1 :line i*g_x,     0,   i*g_x, g_b*g_y :next
+
+	onclick *fon_cha1_save
+	stop
+
+; fon_cha1.png 保存
+*fon_cha1_save
+	gsel 1
+	gosub *fon_cha1_draw
+
+	fname = "fon_cha1"
+	goto *fon_save_common
+
+; fon_cha2.png プレビュー
+*fon_cha2
+	; 定数
+	g_x = 32 :g_y = 32 ; フォントサイズ
+	g_a =  6 :g_b =  1 ; 画像数
+
+	; プレビュー表示
+	screen 1, g_x*g_a, g_y*g_b, 8
+	gosub *fon_cha2_draw
+
+	; 補助線
+	color 102,102,102
+	for i, 0, g_b, 1 :line     0, i*g_y, g_a*g_x,   i*g_y :next
+	for i, 0, g_a, 1 :line i*g_x,     0,   i*g_x, g_b*g_y :next
+
+	onclick *fon_cha2_save
+	stop
+
+; fon_cha2.png 保存
+*fon_cha2_save
+	gsel 1
+	gosub *fon_cha2_draw
+
+	fname = "fon_cha2"
+	goto *fon_save_common
+
+; 保存共通処理
+*fon_save_common
+	
+	bmpsave fname + ".bmp"
+	exec g_imagemagick + " -colors 256 " + fname + ".bmp " + fname + ".png"
+	wait 20
+	delete fname + ".bmp"
+
+	gsel 1, -1
+	goto *startx
+
+;-------------------------------------------------------------------------------
+;-------------------------------------------------------------------------------
+;-------------------------------------------------------------------------------
+
+; fon_cha1.png 描画
+*fon_cha1_draw
+	color 0, 0, 0 :boxf
+	color 255, 255, 255
+	for j, 0, g_b, 1
+		for i, 0, g_a, 1
+			c = " "
+			n = j*16 + i + 32
+			poke c, 0, n
+			if ( i = 15 ) & ( j = 5 ) :c = "ﾟ"
+			pos i*g_x+2, j*g_y+2
+			font "VL ゴシック",27
+			mes c
+		next
+	next
+
+	return
+
+; fon_cha2.png 描画
+*fon_cha2_draw
+	color 0, 0, 0 :boxf
+	j=0
+	for i, 0, g_a, 1
+		color 255, 255, 255
+		c=""
+		switch i
+		case 1
+			font "VL ゴシック", 24
+			pos i*g_x+2, j*g_y+2
+			mes "○"
+			font "VL ゴシック", 18
+			pos i*g_x+11, j*g_y+13
+			mes "＼"
+			pos i*g_x+13, j*g_y+11
+			mes "＼"
+			c = ""
+			swbreak
+		case 2
+			font "Symbol", 28
+			pos i*g_x+2, j*g_y-5
+			n = 172
+			poke c, 0, n
+			swbreak
+		case 3
+			font "Symbol", 26
+			pos i*g_x+9, j*g_y+2
+			n = 175
+			poke c, 0, n
+			swbreak
+		case 4
+			font "Symbol", 26
+			pos i*g_x+9, j*g_y+2
+			n = 173
+			poke c, 0, n
+			swbreak
+		case 5
+			font "Symbol", 28
+			pos i*g_x+2, j*g_y-5
+			n = 174
+			poke c, 0, n
+			swbreak
+		swend
+		mes c
+	next
+
+	; ドクロ用
+	pos 11*g_x, 0
+	gzoom g_x, g_y, 1, 11*g_x, 0, 22, 31, 1
+
+	return
