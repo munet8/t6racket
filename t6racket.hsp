@@ -55,6 +55,7 @@ int_event_id = 0
 int_event_time = 0
 int_no_event_time = zone_rnd( 0, 0 )
 int_crank = 0
+int_startup = 0
 
 sdim arr_event_name, 20, 10
 arr_event_name(0) = ""
@@ -114,6 +115,7 @@ arr_event_score(7) = 15
 		; 入力受付不可時間
 		int_flame_first++
 	}
+	if ( int_direction >= 0 ) :int_startup = 1
 
 	; ラケットの移動
 	switch int_direction
@@ -128,64 +130,66 @@ arr_event_score(7) = 15
 	swend
 
 	; ボールの移動・OR イベント：Skip・Crank
-	switch int_event_id
-	case 5:
-		i = int_flame & 31
-		if ( i < 21 ) {
-			double_ball_x += ( double_ball_vx * 1.5 )
-			double_ball_y += ( double_ball_vy * 1.5 )
- 		} else {
-			double_ball_x += ( double_ball_vx * 0.5 )
-			double_ball_y += ( double_ball_vy * 0.5 )
-		}
-		swbreak
-	case 6:
-		if (( int_crank = 0 ) & ( rnd(150) = 0 )) {
-			int_crank = 16 + rnd(11)
-			f = double_ball_vx
-			double_ball_vx = double_ball_vy
-			double_ball_vy = -f
-		}
-		if ( int_crank > 0 ) {
-			int_crank--
-			if ( int_crank = 0 ) {
-				f = double_ball_vx
-				double_ball_vx = -double_ball_vy
-				double_ball_vy = f
+	if ( int_startup > 0 ) {
+		switch int_event_id
+		case 5:
+			i = int_flame & 31
+			if ( i < 21 ) {
+				double_ball_x += ( double_ball_vx * 1.5 )
+				double_ball_y += ( double_ball_vy * 1.5 )
+	 		} else {
+				double_ball_x += ( double_ball_vx * 0.5 )
+				double_ball_y += ( double_ball_vy * 0.5 )
 			}
-		}
-		double_ball_x += double_ball_vx
-		double_ball_y += double_ball_vy
-		swbreak
-	default:
-		double_ball_x += double_ball_vx
-		double_ball_y += double_ball_vy
-		swbreak
-	swend
+			swbreak
+		case 6:
+			if (( int_crank = 0 ) & ( rnd(150) = 0 )) {
+				int_crank = 16 + rnd(11)
+				f = double_ball_vx
+				double_ball_vx = double_ball_vy
+				double_ball_vy = -f
+			}
+			if ( int_crank > 0 ) {
+				int_crank--
+				if ( int_crank = 0 ) {
+					f = double_ball_vx
+					double_ball_vx = -double_ball_vy
+					double_ball_vy = f
+				}
+			}
+			double_ball_x += double_ball_vx
+			double_ball_y += double_ball_vy
+			swbreak
+		default:
+			double_ball_x += double_ball_vx
+			double_ball_y += double_ball_vy
+			swbreak
+		swend
 
-	; イベント：Wind・Gravity・Warp
-	switch int_event_id
-	case 1:
-		double_x -= double_dx
-		if ( double_x < g_font_x ) :double_x = g_font_x
-		swbreak
-	case 2:
-		double_x += double_dx
-		if ( double_x > ( 24 * g_font_x )) :double_x = 24 * g_font_x
-		swbreak
-	case 3:
-		double_ball_y += double_dy
-		swbreak
-	case 4:
-		double_ball_y -= double_dy
-		swbreak
-	case 7:
-		if ( rnd(150) = 0 ) {
-			double_ball_x = double( ( rnd(21) + 2 ) * g_font_x )
-			double_ball_y = double( ( rnd(10) + 2 ) * g_font_y )
-		}
-		swbreak
-	swend
+		; イベント：Wind・Gravity・Warp
+		switch int_event_id
+		case 1:
+			double_x -= double_dx
+			if ( double_x < g_font_x ) :double_x = g_font_x
+			swbreak
+		case 2:
+			double_x += double_dx
+			if ( double_x > ( 24 * g_font_x )) :double_x = 24 * g_font_x
+			swbreak
+		case 3:
+			double_ball_y += double_dy
+			swbreak
+		case 4:
+			double_ball_y -= double_dy
+			swbreak
+		case 7:
+			if ( rnd(150) = 0 ) {
+				double_ball_x = double( ( rnd(21) + 2 ) * g_font_x )
+				double_ball_y = double( ( rnd(10) + 2 ) * g_font_y )
+			}
+			swbreak
+		swend
+	}
 
 	; ボール壁反射
 	if ( double_ball_x < g_font_x ) {
