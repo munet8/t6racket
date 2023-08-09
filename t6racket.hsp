@@ -300,7 +300,7 @@ arr_event_score(7) = 15
 	pos 2 * g_font_x, 1 * g_font_y
 	fprint "Your score is " + int_score + ".", 255
 	pos 2 * g_font_x, 3 * g_font_y
-	fprint g_tan6 + "racket¡ v1.0", 255
+	fprint g_tan6 + "racket¡ v1.1", 255
 	pos 2 * g_font_x, 4 * g_font_y
 	fprint "2013(C) m-ushi", 255
 
